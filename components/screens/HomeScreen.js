@@ -1,48 +1,53 @@
-import React, {useEffect, useState} from 'react';
-import {View, StyleSheet, Text, Button, ScrollView} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {FlatList, RefreshControl, StyleSheet, Text, View} from 'react-native';
 import {Card} from 'react-native-paper';
 import Pressable from 'react-native/Libraries/Components/Pressable/Pressable';
-import TestTile from './TestTile';
-import _ from 'lodash';
+import testMock from '../../mocks/testMock';
+
+const wait = timeout => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+};
 
 const HomeScreen = ({navigation}) => {
-  const tiles = [
-    {
-      text: 'Title test #1',
-    },
-    {
-      text: 'Title test #2',
-    },
-    {
-      text: 'Title test #3',
-    },
-    {
-      text: 'Title test #4',
-    },
-    {
-      text: 'Title test #5',
-    },
-    {
-      text: 'Title test #6',
-    },
-  ];
-  return (
-    <ScrollView>
-      <View>
-        {_.map(tiles, tile => (
-          <TestTile text={tile.text} navigation={navigation} />
-        ))}
+  const [refreshing, setRefreshing] = useState(false);
 
-        <Card style={styles.card}>
-          <Text style={styles.heading}>Get to know your ranking result</Text>
-          <Pressable
-            style={styles.button}
-            onPress={() => navigation.navigate('Results')}>
-            <Text style={styles.buttonTitle}>Check!</Text>
-          </Pressable>
-        </Card>
-      </View>
-    </ScrollView>
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    wait(2000).then(() => setRefreshing(false));
+  }, []);
+
+  const renderItem = ({item}) => (
+    <Pressable onPress={() => navigation.navigate('Test', {item: item})}>
+      <Card style={styles.itemCard}>
+        <Text>{item.name}</Text>
+        <Text>{item.tags}</Text>
+        <Text>{item.description}</Text>
+      </Card>
+    </Pressable>
+  );
+
+  return (
+    <View>
+      <FlatList
+        contentContainerStyle={styles.scrollView}
+        data={testMock}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            // onRefresh={onRefresh}
+          />
+        }
+      />
+      <Card style={styles.card}>
+        <Text style={styles.heading}>Get to know your ranking result</Text>
+        <Pressable
+          style={styles.button}
+          onPress={() => navigation.navigate('Results')}>
+          <Text style={styles.buttonTitle}>Check!</Text>
+        </Pressable>
+      </Card>
+    </View>
   );
 };
 
@@ -55,11 +60,9 @@ const styles = StyleSheet.create({
   heading: {
     textAlign: 'center',
     marginBottom: 15,
-    fontSize: 20,
   },
   buttonTitle: {
     textAlign: 'center',
-    fontSize: 15,
   },
   button: {
     textAlign: 'center',
@@ -67,7 +70,11 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingStart: 20,
     paddingEnd: 20,
-    backgroundColor: '#abc8c2',
+    backgroundColor: '#eeeeee',
+  },
+  itemCard: {
+    margin: 8,
+    padding: 10,
   },
 });
 
