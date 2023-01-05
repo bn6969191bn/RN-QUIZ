@@ -1,30 +1,54 @@
 import React, {useEffect, useState} from 'react';
 import {FlatList, StyleSheet, Text, View, Pressable} from 'react-native';
 import {ProgressBar} from 'react-native-paper';
+import QuizHTTP from '../../assets/QuizHTTP';
 
 const wait = timeout => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 };
 
 const TestScreen = (props: any) => {
-  const [currentQuestion, setCurrentQuestion] = useState(
-    props.route.params.item.tasks[0],
-  );
+  const [currentQuiz, setCurrentQuiz] = useState(props.route.params.item);
+  const [currentQuestion, setCurrentQuestion] = useState();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(1);
   const [points, setPoints] = useState(0);
 
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [correctAnswer, setCorrectAnswer] = useState(null);
 
-  const [seconds, setSeconds] = useState(currentQuestion.duration);
+  const [seconds, setSeconds] = useState(30);
   const [isEnd, setIsEnd] = useState(false);
 
-  let isLoading = false;
+  const [quizData, setQuizData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const fetchData = async () => {
+    setInitialLoading(true);
+    const result = await QuizHTTP.getTestDetails(currentQuiz.id);
+    setQuizData(result);
+    setCurrentQuestion(result.tasks[0]);
+    setSeconds(result.tasks[0].duration);
+    setInitialLoading(false);
+  };
+
+  const sendResult = async () => {
+    await QuizHTTP.sendResults({
+      nick: 'TestTest',
+      score: points,
+      total: quizData.tasks.length,
+      type: currentQuiz.tags.join(','),
+    });
+  };
+
+  useEffect(async () => {
+    await fetchData();
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       if (seconds === 0) {
-        await goToNextQuestion();
+        goToNextQuestion().then();
       } else {
         setSeconds(seconds - 1);
       }
@@ -37,7 +61,7 @@ const TestScreen = (props: any) => {
   };
   const goToNextQuestion = async question => {
     if (!isLoading) {
-      isLoading = true;
+      setIsLoading(true);
       setCorrectAnswer(
         currentQuestion.answers.filter(e => e.isCorrect)[0].content,
       );
@@ -49,14 +73,15 @@ const TestScreen = (props: any) => {
       }
 
       await wait(500);
-      isLoading = false;
-      if (currentQuestionIndex < props.route.params.item.numberOfTasks) {
+      setIsLoading(false);
+      if (currentQuestionIndex < quizData.tasks.length) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setCurrentQuestion(props.route.params.item.tasks[currentQuestionIndex]);
+        setCurrentQuestion(quizData.tasks[currentQuestionIndex]);
 
         setSeconds(currentQuestion.duration);
-      } else {
+      } else if (!isEnd) {
         setIsEnd(true);
+        await sendResult();
       }
       setCorrectAnswer(null);
       setSelectedAnswer(null);
@@ -66,7 +91,7 @@ const TestScreen = (props: any) => {
   const renderItem = item => {
     return (
       <Pressable
-        key={item.content}
+        key={item.id}
         style={[
           styles.answer,
           item.content === correctAnswer
@@ -84,26 +109,29 @@ const TestScreen = (props: any) => {
   if (isEnd) {
     return (
       <View style={styles.pointsPage}>
-        <Text>Test finished</Text>
+        <Text style={styles.finishText}>Test finished</Text>
         <Text>Your points: {points}</Text>
       </View>
     );
+  }
+  if (initialLoading) {
+    return <Text>Loading...</Text>;
   }
   return (
     <View style={styles.page}>
       <View style={styles.header}>
         <Text>
-          Question {currentQuestionIndex} of{' '}
-          {props.route.params.item.numberOfTasks}
+          Question {currentQuestionIndex} of {quizData.tasks.length}
         </Text>
         <Text>Time: {seconds} sec</Text>
       </View>
       <ProgressBar progress={seconds / currentQuestion.duration} />
-      <Text>{props.route.params.item.name}</Text>
+      <Text>{quizData.tasks.name}</Text>
 
-      <Text>{currentQuestion.question}</Text>
+      <Text style={styles.questionText}>{currentQuestion.question}</Text>
       <FlatList
         data={currentQuestion.answers}
+        keyExtractor={item => `${item.id}${Math.random()}`}
         renderItem={item => renderItem(item.item)}
         numColumns={2}
       />
@@ -114,6 +142,19 @@ const TestScreen = (props: any) => {
 const styles = StyleSheet.create({
   page: {
     padding: 15,
+  },
+  questionText: {
+    fontFamily: 'Lobster',
+    textAlign: 'center',
+    fontSize: 18,
+    marginTop: 30,
+    marginBottom: 30,
+  },
+  finishText: {
+    fontFamily: 'Lobster',
+    textAlign: 'center',
+    fontSize: 35,
+    marginBottom: 30,
   },
   pointsPage: {
     height: '100%',

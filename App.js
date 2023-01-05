@@ -13,7 +13,7 @@ import SplashScreen from 'react-native-splash-screen';
 
 const CustomDrawer = props => {
   return (
-    <View>
+    <View style={styles.app}>
       <View style={styles.header}>
         <Text>Quiz App</Text>
       </View>
@@ -75,6 +75,9 @@ export default class App extends Component<{}> {
 }
 
 const styles = StyleSheet.create({
+  app: {
+    fontFamily: 'OpenSans',
+  },
   header: {
     height: 200,
     justifyContent: 'center',
