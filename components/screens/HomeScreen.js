@@ -1,8 +1,9 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState, useEffect} from 'react';
 import {FlatList, RefreshControl, StyleSheet, Text, View} from 'react-native';
 import {Card} from 'react-native-paper';
 import Pressable from 'react-native/Libraries/Components/Pressable/Pressable';
 import testMock from '../../mocks/testMock';
+import QuizHTTP from '../../assets/QuizHTTP';
 
 const wait = timeout => {
   return new Promise(resolve => setTimeout(resolve, timeout));
@@ -10,18 +11,28 @@ const wait = timeout => {
 
 const HomeScreen = ({navigation}) => {
   const [refreshing, setRefreshing] = useState(false);
+  const [resultsData, setResultsData] = useState([]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    wait(2000).then(() => setRefreshing(false));
+    fetchData().then(() => setRefreshing(false));
+  }, []);
+
+  const fetchData = async () => {
+    const result = await QuizHTTP.getAllTests();
+    setResultsData(result);
+  };
+
+  useEffect(() => {
+    fetchData().then();
   }, []);
 
   const renderItem = ({item}) => (
     <Pressable onPress={() => navigation.navigate('Test', {item: item})}>
       <Card style={styles.itemCard}>
-        <Text>{item.name}</Text>
-        <Text>{item.tags}</Text>
-        <Text>{item.description}</Text>
+        <Text style={styles.itemTitle}>{item.name}</Text>
+        <Text style={styles.itemDescription}>{item.description}</Text>
+        <Text style={styles.itemTags}>Tagi: {item.tags.join(', ')}</Text>
       </Card>
     </Pressable>
   );
@@ -30,13 +41,10 @@ const HomeScreen = ({navigation}) => {
     <View>
       <FlatList
         contentContainerStyle={styles.scrollView}
-        data={testMock}
+        data={resultsData}
         renderItem={renderItem}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            // onRefresh={onRefresh}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
       <Card style={styles.card}>
@@ -71,6 +79,17 @@ const styles = StyleSheet.create({
     paddingStart: 20,
     paddingEnd: 20,
     backgroundColor: '#eeeeee',
+  },
+  itemTitle: {
+    fontFamily: 'Lobster',
+    fontSize: 20,
+  },
+  itemDescription: {
+    fontStyle: 'italic',
+  },
+  itemTags: {
+    marginTop: 20,
+    fontWeight: 'bold',
   },
   itemCard: {
     margin: 8,
