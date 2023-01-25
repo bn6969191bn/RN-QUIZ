@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {FlatList, StyleSheet, Text, View, Pressable} from 'react-native';
 import {ProgressBar} from 'react-native-paper';
 import QuizHTTP from '../../assets/QuizHTTP';
+import _ from 'lodash';
 
 const wait = timeout => {
   return new Promise(resolve => setTimeout(resolve, timeout));
@@ -23,26 +24,28 @@ const TestScreen = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const fetchData = async () => {
-    setInitialLoading(true);
-    const result = await QuizHTTP.getTestDetails(currentQuiz.id);
-    setQuizData(result);
-    setCurrentQuestion(result.tasks[0]);
-    setSeconds(result.tasks[0].duration);
-    setInitialLoading(false);
-  };
-
   const sendResult = async () => {
     await QuizHTTP.sendResults({
       nick: 'TestTest',
       score: points,
       total: quizData.tasks.length,
-      type: currentQuiz.tags.join(','),
+      type: currentQuiz.name,
     });
   };
 
-  useEffect(async () => {
-    await fetchData();
+  useEffect(() => {
+    const fetchData = async () => {
+      setInitialLoading(true);
+      const result = await QuizHTTP.getTestDetails(currentQuiz.id);
+      setQuizData(result);
+      result.tasks = _.shuffle(result.tasks);
+      let currQuestion = result.tasks[0];
+      currQuestion.answers = _.shuffle(currQuestion.answers);
+      setCurrentQuestion(currQuestion);
+      setSeconds(currQuestion.duration);
+      setInitialLoading(false);
+    };
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -77,7 +80,7 @@ const TestScreen = (props: any) => {
       if (currentQuestionIndex < quizData.tasks.length) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setCurrentQuestion(quizData.tasks[currentQuestionIndex]);
-
+        currentQuestion.answers = _.shuffle(currentQuestion.answers);
         setSeconds(currentQuestion.duration);
       } else if (!isEnd) {
         setIsEnd(true);
@@ -115,28 +118,30 @@ const TestScreen = (props: any) => {
     );
   }
   if (initialLoading) {
+    console.log(initialLoading);
     return <Text>Loading...</Text>;
-  }
-  return (
-    <View style={styles.page}>
-      <View style={styles.header}>
-        <Text>
-          Question {currentQuestionIndex} of {quizData.tasks.length}
-        </Text>
-        <Text>Time: {seconds} sec</Text>
-      </View>
-      <ProgressBar progress={seconds / currentQuestion.duration} />
-      <Text>{quizData.tasks.name}</Text>
+  } else {
+    return (
+      <View style={styles.page}>
+        <View style={styles.header}>
+          <Text>
+            Question {currentQuestionIndex} of {quizData.tasks.length}
+          </Text>
+          <Text>Time: {seconds} sec</Text>
+        </View>
+        <ProgressBar progress={seconds / currentQuestion.duration} />
+        <Text>{quizData.tasks.name}</Text>
 
-      <Text style={styles.questionText}>{currentQuestion.question}</Text>
-      <FlatList
-        data={currentQuestion.answers}
-        keyExtractor={item => `${item.id}${Math.random()}`}
-        renderItem={item => renderItem(item.item)}
-        numColumns={2}
-      />
-    </View>
-  );
+        <Text style={styles.questionText}>{currentQuestion.question}</Text>
+        <FlatList
+          data={currentQuestion.answers}
+          keyExtractor={item => `${item.id}${Math.random()}`}
+          renderItem={item => renderItem(item.item)}
+          numColumns={2}
+        />
+      </View>
+    );
+  }
 };
 
 const styles = StyleSheet.create({

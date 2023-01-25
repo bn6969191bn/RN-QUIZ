@@ -14,7 +14,7 @@ const TermsScreen = ({navigation}) => {
 
   return (
     <View style={styles.page}>
-      <Text>Regulamin</Text>
+      <Text>Terms and conditions</Text>
       <View style={styles.sizedBox} />
       <Text>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas mollis
@@ -27,7 +27,7 @@ const TermsScreen = ({navigation}) => {
       </Text>
       <View style={styles.sizedBox} />
       <View style={styles.sizedBox} />
-      <Button title={'Akceptuje warunki korzystania'} onPress={handleSubmit} />
+      <Button title={'Accept the terms of use'} onPress={handleSubmit} />
     </View>
   );
 };
