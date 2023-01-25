@@ -4,6 +4,7 @@ import {Card} from 'react-native-paper';
 import Pressable from 'react-native/Libraries/Components/Pressable/Pressable';
 import testMock from '../../mocks/testMock';
 import QuizHTTP from '../../assets/QuizHTTP';
+import _ from 'lodash';
 
 const wait = timeout => {
   return new Promise(resolve => setTimeout(resolve, timeout));
@@ -20,7 +21,7 @@ const HomeScreen = ({navigation}) => {
 
   const fetchData = async () => {
     const result = await QuizHTTP.getAllTests();
-    setResultsData(result);
+    setResultsData(_.shuffle(result));
   };
 
   useEffect(() => {
